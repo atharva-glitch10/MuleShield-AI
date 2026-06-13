@@ -1,0 +1,161 @@
+# =========================
+
+# Python / Backend
+
+# =========================
+
+# Virtual Environments
+
+venv/
+env/
+.venv/
+ENV/
+.env
+
+# Python Cache
+
+**pycache**/
+*.py[cod]
+*$py.class
+
+# Distribution / Packaging
+
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Logs
+
+*.log
+
+# Pytest
+
+.pytest_cache/
+
+# Coverage
+
+.coverage
+htmlcov/
+
+# IDEs
+
+.vscode/
+.idea/
+
+# OS Files
+
+.DS_Store
+Thumbs.db
+
+# =========================
+
+# Machine Learning Models
+
+# =========================
+
+# Trained Models
+
+backend/app/models/*.pkl
+backend/app/models/*.joblib
+backend/app/models/*.h5
+backend/app/models/*.pt
+backend/app/models/*.pth
+
+# Large Datasets
+
+backend/app/data/*.csv
+backend/app/data/*.xlsx
+backend/app/data/*.xls
+backend/app/data/*.parquet
+
+# Optional: keep placeholder files
+
+!backend/app/data/.gitkeep
+
+# =========================
+
+# Frontend (React / Vite)
+
+# =========================
+
+# Dependencies
+
+node_modules/
+
+# Build Outputs
+
+frontend/mule-dashboard/dist/
+frontend/mule-dashboard/build/
+
+# Cache
+
+.npm/
+.cache/
+
+# Vite
+
+vite.svg
+
+# Coverage
+
+coverage/
+
+# Environment Variables
+
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# =========================
+
+# Git
+
+# =========================
+
+.gitmodules
+
+# =========================
+
+# Temporary Files
+
+# =========================
+
+*.tmp
+*.temp
+*.bak
+*.swp
+
+# =========================
+
+# Jupyter Notebooks
+
+# =========================
+
+.ipynb_checkpoints/
+
+# =========================
+
+# Uploads / Generated Files
+
+# =========================
+
+uploads/
+generated/
+reports/
+
+# =========================
+
+# Large Files Specifically
+
+# =========================
+
+latest.csv
+backend/app/data/latest.csv

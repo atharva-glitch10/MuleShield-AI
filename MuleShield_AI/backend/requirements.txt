@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+python-multipart
+pandas
+joblib
+loguru
+scikit-learn
+networkx
+slowapi
