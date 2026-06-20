@@ -1,4 +1,10 @@
-"""risk_service.py – Composite risk scoring helpers."""
+"""risk_service.py – Composite risk scoring helpers.
+
+Imports added for hybrid scoring.
+"""
+
+from .xgboost_service import get_xgb_probability
+import pandas as pd
 import numpy as np
 
 
@@ -19,9 +25,10 @@ def compute_composite_risk(anomaly_score: float, transaction_count: int = 0,
         A float in the range [0, 100].
     """
     # Convert anomaly score to 0-100 (more negative -> higher risk)
-    ml_component = float(np.clip(abs(anomaly_score) * 1000, 0, 60))
+    # Isolation Forest component (scaled to max 60 points)
+    isolation_score = float(np.clip(abs(anomaly_score) * 1000, 0, 60))
 
-    # Rule-based components (max 40 points)
+    # Rule-based component (max 40 points)
     rule_score = 0
     if transaction_count > 100:
         rule_score += 10
@@ -32,7 +39,18 @@ def compute_composite_risk(anomaly_score: float, transaction_count: int = 0,
     if total_credit_amount > 500_000:
         rule_score += 10
 
-    return round(min(ml_component + rule_score, 100), 2)
+    # XGBoost probability (expects feature list; placeholder empty list for now)
+    # Placeholder: empty DataFrame for XGBoost probability
+    empty_df = pd.DataFrame([[]])
+    xgb_prob = get_xgb_probability(empty_df)  # TODO: replace with real features
+
+    # Hybrid risk formula (weights: 0.5 XGB, 0.3 Isolation, 0.2 Rule)
+    risk = (
+        0.5 * xgb_prob * 100
+        + 0.3 * isolation_score
+        + 0.2 * rule_score
+    )
+    return round(min(risk, 100), 2)
 
 
 def risk_label(score: float) -> str:

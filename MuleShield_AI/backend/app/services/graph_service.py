@@ -8,11 +8,18 @@ from app.services.anomaly_service import (
 )
 
 
-def build_graph():
+import os
 
-    df, predictions, scores = get_anomaly_scores(
-        "app/data/latest.csv"
-    )
+_graph_cache = {}
+
+def build_graph():
+    filepath = "app/data/latest.csv"
+    mtime = os.path.getmtime(filepath) if os.path.exists(filepath) else 0
+    cache_key = (filepath, mtime)
+    if cache_key in _graph_cache:
+        return _graph_cache[cache_key]
+
+    df, predictions, scores = get_anomaly_scores(filepath)
 
     G = nx.Graph()
 
@@ -40,6 +47,7 @@ def build_graph():
     if numeric_df.empty or numeric_df.shape[1] == 0:
         for i in range(len(suspicious_list) - 1):
             G.add_edge(int(suspicious_list[i]), int(suspicious_list[i + 1]))
+        _graph_cache[cache_key] = G
         return G
 
     # Calculate similarity matrix
@@ -63,4 +71,5 @@ def build_graph():
                     weight=float(similarity_matrix[i, j])
                 )
 
+    _graph_cache[cache_key] = G
     return G

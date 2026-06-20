@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from app.services.model_metrics_service import compute_metrics
 import pandas as pd
 
 from app.services.anomaly_service import (
@@ -71,6 +72,11 @@ def high_risk_records():
 
 
 @router.get("/dashboard/statistics")
+@router.get("/dashboard/model-performance")
+def model_performance():
+    """Return XGBoost model performance metrics as JSON."""
+    return compute_metrics()
+
 def dashboard_statistics():
 
     df, predictions, scores = get_anomaly_scores(

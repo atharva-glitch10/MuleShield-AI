@@ -13,6 +13,14 @@ class Settings(BaseSettings):
         default=os.path.join("app", "models", "isolation_forest.pkl"),
         env="MODEL_PATH",
     )
+    xgb_model_path: str = Field(
+        default=os.path.join("app", "models", "xgboost_classifier.pkl"),
+        env="XGB_MODEL_PATH",
+    )
+    shap_cache_dir: str = Field(
+        default=os.path.join("app", "shap_cache"),
+        env="SHAP_CACHE_DIR",
+    )
     data_path: str = Field(
         default=os.path.join("app", "data", "latest.csv"),
         env="DATA_PATH",

@@ -75,14 +75,21 @@ def load_model():
         IsolationForest: The trained model ready for predictions.
     """
     if not os.path.exists(MODEL_PATH):
-        # Train a new model using the default dataset
-        train_result = train_anomaly_model("app/data/latest.csv")
+        # Compute absolute data path
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        data_path = os.path.join(base_dir, "app", "data", "latest.csv")
+        train_result = train_anomaly_model(data_path)
         if "error" in train_result:
             raise RuntimeError(f"Failed to train model: {train_result['error']}")
     return joblib.load(MODEL_PATH)
-
+_anomaly_cache = {}
 
 def get_anomaly_scores(filepath):
+    # Enable in-memory caching to avoid reading 170MB+ CSV and running ML inference on every HTTP request
+    mtime = os.path.getmtime(filepath) if os.path.exists(filepath) else 0
+    cache_key = (filepath, mtime)
+    if cache_key in _anomaly_cache:
+        return _anomaly_cache[cache_key]
 
     df_original = pd.read_csv(filepath)
 
@@ -100,9 +107,10 @@ def get_anomaly_scores(filepath):
         df_processed
     )
 
-    return (
+    res = (
         df_original,
         predictions,
         scores
     )
-    
+    _anomaly_cache[cache_key] = res
+    return res

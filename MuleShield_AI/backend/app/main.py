@@ -19,6 +19,7 @@ from app.routes.training import router as training_router
 from app.routes.model import router as model_router
 from app.routes.anomaly import router as anomaly_router
 from app.routes.dashboard import router as dashboard_router
+from app.routes.explain import router as explain_router
 from app.routes.alerts import router as alerts_router
 
 # Investigation Routes
@@ -82,6 +83,7 @@ app.include_router(training_router)
 app.include_router(model_router)
 app.include_router(anomaly_router)
 app.include_router(dashboard_router)
+app.include_router(explain_router)
 app.include_router(alerts_router)
 
 # ===================================
