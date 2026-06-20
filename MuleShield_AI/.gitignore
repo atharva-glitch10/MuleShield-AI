@@ -159,3 +159,8 @@ reports/
 
 latest.csv
 backend/app/data/latest.csv
+
+# Project secrets and virtual env
+.env
+.venv/
+project_documentation.md
