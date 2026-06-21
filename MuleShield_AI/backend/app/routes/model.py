@@ -23,48 +23,35 @@ def model_status():
 def hybrid_risk(record_id: int):
     """Compute hybrid risk score for a given record.
 
-    - Loads the latest CSV data.
-    - Extracts features for XGBoost (all columns except the target `F3924`).
-    - Retrieves XGBoost probability via `get_xgb_probability`.
-    - Gets Isolation Forest anomaly score via `get_anomaly_scores`.
+    - Loads features via cached load_data().
+    - Retrieves XGBoost probability via get_xgb_probability.
+    - Gets Isolation Forest anomaly score via get_anomaly_scores.
     - Applies the weighted formula:
         risk = 0.5 * xgb_prob * 100 + 0.3 * isolation_score + 0.2 * rule_score
-    - Returns JSON with `record_id` and `hybrid_risk_score`.
+    - Returns JSON with record_id and hybrid_risk_score.
     """
-    import pandas as pd
-    import numpy as np
     from app.services.anomaly_service import get_anomaly_scores
-    from app.services.xgboost_service import get_xgb_probability
-
-    # Load data
+    from app.services.model_metrics_service import load_data
+    from app.services.risk_service import compute_composite_risk
     import os
-    # Build absolute path to the CSV data file
+
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
     data_path = os.path.join(base_dir, "app", "data", "latest.csv")
-    df = pd.read_csv(data_path)
-    if record_id < 0 or record_id >= len(df):
+
+    try:
+        X, _ = load_data()
+    except Exception as e:
+        return {"error": f"Failed to load dataset: {e}"}
+
+    if record_id < 0 or record_id >= len(X):
         return {"error": "record_id out of range"}
 
-    # Feature vector for XGBoost (exclude target column if present)
-    feature_cols = [c for c in df.columns if c != "F3924"]
-    features = df.iloc[record_id][feature_cols].fillna(0).tolist()
-    # Convert to DataFrame for XGBoost service
-    import pandas as pd
-    features_df = pd.DataFrame([features])
-    xgb_prob = get_xgb_probability(features_df)
+    # Retrieve pre-engineered feature row from cached X
+    features_df = X.iloc[[record_id]]
 
-    # Isolation Forest anomaly score
+    # Isolation Forest anomaly score (cached)
     _, _, scores = get_anomaly_scores(data_path)
     anomaly_score = scores[record_id]
-    isolation_score = float(np.clip(abs(anomaly_score) * 1000, 0, 60))
 
-    # Rule‑based component – placeholder (set to 0 for now)
-    rule_score = 0
-
-    # Hybrid risk calculation (weights 0.5, 0.3, 0.2)
-    hybrid_score = (
-        0.5 * xgb_prob * 100
-        + 0.3 * isolation_score
-        + 0.2 * rule_score
-    )
+    hybrid_score = compute_composite_risk(anomaly_score, record_features=features_df)
     return {"record_id": record_id, "hybrid_risk_score": round(min(hybrid_score, 100), 2)}

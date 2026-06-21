@@ -4,6 +4,8 @@ import pandas as pd
 import joblib
 import os
 
+from app.services.feature_engineering_service import engineer_features, generate_features
+
 MODEL_PATH = "app/models/isolation_forest.pkl"
 
 
@@ -11,6 +13,10 @@ def preprocess_dataframe(df):
 
     if "Unnamed: 0" in df.columns:
         df = df.drop(columns=["Unnamed: 0"])
+
+    # Feature Engineering
+    df = generate_features(df)
+    df = engineer_features(df)
 
     df = df.fillna("Unknown")
 
@@ -82,35 +88,64 @@ def load_model():
         if "error" in train_result:
             raise RuntimeError(f"Failed to train model: {train_result['error']}")
     return joblib.load(MODEL_PATH)
+import threading
+
+_anomaly_lock = threading.RLock()
+_preprocessed_cache = {}
 _anomaly_cache = {}
+
+
+def get_preprocessed_data(filepath):
+    """Retrieve the original and preprocessed dataframes from cache, or compute them.
+    Protected by _anomaly_lock to avoid concurrent parsing/engineering of large files.
+    """
+    filepath = os.path.abspath(filepath)
+    mtime = os.path.getmtime(filepath) if os.path.exists(filepath) else 0
+    cache_key = (filepath, mtime)
+    if cache_key in _preprocessed_cache:
+        return _preprocessed_cache[cache_key]
+
+    with _anomaly_lock:
+        # Check again in case another thread computed it while we were waiting
+        if cache_key in _preprocessed_cache:
+            return _preprocessed_cache[cache_key]
+
+        df_original = pd.read_csv(filepath)
+        df_processed = preprocess_dataframe(df_original.copy())
+        res = (df_original, df_processed)
+        _preprocessed_cache[cache_key] = res
+        return res
+
 
 def get_anomaly_scores(filepath):
     # Enable in-memory caching to avoid reading 170MB+ CSV and running ML inference on every HTTP request
+    filepath = os.path.abspath(filepath)
     mtime = os.path.getmtime(filepath) if os.path.exists(filepath) else 0
     cache_key = (filepath, mtime)
     if cache_key in _anomaly_cache:
         return _anomaly_cache[cache_key]
 
-    df_original = pd.read_csv(filepath)
+    with _anomaly_lock:
+        # Check again in case another thread computed it while we were waiting
+        if cache_key in _anomaly_cache:
+            return _anomaly_cache[cache_key]
 
-    df_processed = preprocess_dataframe(
-        df_original.copy()
-    )
+        df_original, df_processed = get_preprocessed_data(filepath)
 
-    model = load_model()
+        model = load_model()
 
-    predictions = model.predict(
-        df_processed
-    )
+        predictions = model.predict(
+            df_processed
+        )
 
-    scores = model.decision_function(
-        df_processed
-    )
+        scores = model.decision_function(
+            df_processed
+        )
 
-    res = (
-        df_original,
-        predictions,
-        scores
-    )
-    _anomaly_cache[cache_key] = res
-    return res
+        res = (
+            df_original,
+            predictions,
+            scores
+        )
+        _anomaly_cache[cache_key] = res
+        return res

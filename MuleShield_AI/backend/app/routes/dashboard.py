@@ -77,6 +77,33 @@ def model_performance():
     """Return XGBoost model performance metrics as JSON."""
     return compute_metrics()
 
+@router.get("/dashboard/roc-curve")
+def roc_curve_data():
+    from app.services.model_metrics_service import get_roc_pr_data
+    return get_roc_pr_data()["roc"]
+
+@router.get("/dashboard/pr-curve")
+def pr_curve_data():
+    from app.services.model_metrics_service import get_roc_pr_data
+    return get_roc_pr_data()["pr"]
+
+@router.get("/dashboard/model-comparison")
+def model_comparison_data():
+    """Returns cached model comparison results.
+    These are computed in a background thread after /train is called.
+    """
+    from app.services.model_metrics_service import _load_cache
+    cached = _load_cache()
+    if cached and "model_comparison" in cached:
+        return cached["model_comparison"]
+    return [{"model": "Training in progress...", "f1_mean": 0.0, "f1_std": 0.0}]
+
+@router.get("/dashboard/feature-importance")
+def feature_importance_data():
+    """Returns cached feature importance (mutual information) from training."""
+    from app.services.model_metrics_service import get_cached_feature_importance
+    return get_cached_feature_importance()
+
 def dashboard_statistics():
 
     df, predictions, scores = get_anomaly_scores(

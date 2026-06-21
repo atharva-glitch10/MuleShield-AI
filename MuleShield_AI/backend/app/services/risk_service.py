@@ -8,7 +8,8 @@ import pandas as pd
 import numpy as np
 
 
-def compute_composite_risk(anomaly_score: float, transaction_count: int = 0,
+def compute_composite_risk(anomaly_score: float, record_features: pd.DataFrame = None,
+                           transaction_count: int = 0,
                            unique_beneficiaries: int = 0,
                            cash_withdrawals: float = 0.0,
                            total_credit_amount: float = 0.0) -> float:
@@ -40,9 +41,10 @@ def compute_composite_risk(anomaly_score: float, transaction_count: int = 0,
         rule_score += 10
 
     # XGBoost probability (expects feature list; placeholder empty list for now)
-    # Placeholder: empty DataFrame for XGBoost probability
-    empty_df = pd.DataFrame([[]])
-    xgb_prob = get_xgb_probability(empty_df)  # TODO: replace with real features
+    if record_features is not None:
+        xgb_prob = get_xgb_probability(record_features)
+    else:
+        xgb_prob = 0.0
 
     # Hybrid risk formula (weights: 0.5 XGB, 0.3 Isolation, 0.2 Rule)
     risk = (

@@ -37,9 +37,26 @@ from app.services.anomaly_service import train_anomaly_model
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup: train model if it doesn't exist yet."""
+    """Startup: train model if it doesn't exist yet, and warm caches."""
     if not os.path.exists(settings.model_path):
         train_anomaly_model(settings.data_path)
+
+    # Pre-warm caches so first dashboard requests are instant
+    if os.path.exists(settings.data_path):
+        try:
+            print("[Lifespan] Pre-warming data, anomaly, and SHAP explainer caches...")
+            from app.services.model_metrics_service import load_data
+            from app.services.anomaly_service import get_anomaly_scores
+            from app.services.shap_service import _load_model_and_explainer
+            
+            abs_path = os.path.abspath(settings.data_path)
+            load_data()
+            get_anomaly_scores(abs_path)
+            _load_model_and_explainer()
+            print("[Lifespan] Caches warmed successfully.")
+        except Exception as e:
+            print(f"[Lifespan] Error warming caches: {e}")
+
     yield
 
 
